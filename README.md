@@ -1,6 +1,10 @@
 # always-tetris
 Tetris written in C++, created by C++ beginner. Can I play this games? nope! This Tetris is always incomplete.
 
+## feature
+
+1. 60 fps
+
 ## Getting Started
 
 ### Installing
