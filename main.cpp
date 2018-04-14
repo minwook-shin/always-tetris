@@ -6,14 +6,43 @@
 #include <stdio.h>
 #include <term.h>
 #include <termios.h>
+#include <time.h>
+#include <fcntl.h>
 
 #define SIZE 100
 #define SLEEP 16666.666666667
-#define MAXSPEED 100
+#define MAXBlockSpeed 100
 
 using namespace std;
 
 int c = 0;
+
+int kbhit(void)
+{
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+    ch = getchar();
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+    if (ch != EOF)
+    {
+        ungetc(ch, stdin);
+        return 1;
+    }
+
+    return 0;
+}
 
 int getch(void)
 {
@@ -72,26 +101,32 @@ void *DrawBoard(int **t)
         }
         cout << endl;
     }
-
     c++;
 }
 
-void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock,int speed)
+void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock, int BlockSpeed, queue<int> &Qblock, int &CurrentBlock, int &NextBlock, bool &PressLeft, bool &PressRight)
 {
 
     t[control_x][control_y] = 2;
-    if ((c % speed == 0))
+    if ((c % BlockSpeed == 0))
     {
 
         if (t[control_x + 1][control_y] == 0)
         {
             int temp = control_x++;
             t[temp][control_y] = 0;
+            if (PressLeft == true){
+                t[temp][control_y + 1] = 0;
+                        PressLeft = false;
+            }
+            if (PressRight == true){
+                t[temp][control_y - 1] = 0;
+                 PressRight = false;}
             IsBlock = true;
         }
-        else if(t[0][1]==2||t[0][2]==2||t[0][3]==2||t[0][4]==2||t[0][5]==2||t[0][6]==2||t[0][7]==2||t[0][8]==2||t[0][9]==2||t[0][10]==2)
+        else if (t[0][1] == 2 || t[0][2] == 2 || t[0][3] == 2 || t[0][4] == 2 || t[0][5] == 2 || t[0][6] == 2 || t[0][7] == 2 || t[0][8] == 2 || t[0][9] == 2 || t[0][10] == 2)
         {
-            cout << "Game Over" <<endl;
+            cout << "Game Over" << endl;
             exit(0);
         }
         else
@@ -99,6 +134,9 @@ void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock,int sp
             control_x = 0;
             control_y = 5;
             IsBlock = false;
+            CurrentBlock = Qblock.front();
+            Qblock.pop();
+            NextBlock = Qblock.front();
         }
     }
 }
@@ -111,34 +149,64 @@ void *ClearBoard(int **t)
     }
 }
 
-void PressKey()
-{
-    int ch;
-    ch = getch();
-    printf("%d \n", ch);
-}
-
 int main()
 {
+    queue<int> Qblock;
+
     int **t = new int *[22];
     for (int i = 0; i < 22; ++i)
     {
         t[i] = new int[12];
         memset(t[i], 0, 4 * 12);
     }
+
     int control_x = 0;
     int control_y = 5;
     bool IsBlock = true;
-    int speed = MAXSPEED - 95;
+    int BlockSpeed = MAXBlockSpeed - 95;
+    int CurrntBlock = 0;
+    int NextBlock = 0;
+    srand((unsigned int)time(NULL));
+    bool PressLeft = false;
+    bool PressRight = false;
+
+    int key, key2;
+    bool OneClick = false;
+    Qblock.push(rand() % 7);
 
     while (true)
     {
-        
-        DropBoard(t, control_x, control_y, IsBlock,speed);
+
+        OneClick = false;
+
+        key2 = kbhit();
+
+        if (key2 == 1 && OneClick == false)
+        {
+            key = 0;
+            key = getch();
+
+            if (key == 27)
+            {
+                PressRight = true;
+                control_y++;
+            }
+
+            OneClick = true;
+        }
+
+        if (Qblock.size() == 1)
+        {
+            Qblock.push(rand() % 7);
+        }
+
+        cout << "Current Block : " << CurrntBlock << endl;
+        cout << "Next Block : " << NextBlock << endl;
+
+        DropBoard(t, control_x, control_y, IsBlock, BlockSpeed, Qblock, CurrntBlock, NextBlock, PressLeft, PressRight);
         DrawBoard(t);
         usleep(SLEEP);
         system("clear");
-        cout << "Next Block : -" << endl;
     }
     ClearBoard(t);
 
