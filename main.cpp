@@ -106,7 +106,6 @@ void *DrawBoard(int **t)
 
 void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock, int BlockSpeed, queue<int> &Qblock, int &CurrentBlock, int &NextBlock, bool &PressLeft, bool &PressRight)
 {
-
     t[control_x][control_y] = 2;
     if ((c % BlockSpeed == 0))
     {
@@ -115,13 +114,20 @@ void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock, int B
         {
             int temp = control_x++;
             t[temp][control_y] = 0;
-            if (PressLeft == true){
+            if (PressLeft == true)
+            {
                 t[temp][control_y + 1] = 0;
-                        PressLeft = false;
+                t[temp][control_y + 2] = 0;
+                 t[temp][control_y + 3] = 0;
+                PressLeft = false;
             }
-            if (PressRight == true){
+            if (PressRight == true)
+            {
                 t[temp][control_y - 1] = 0;
-                 PressRight = false;}
+                t[temp][control_y - 2] = 0;
+                t[temp][control_y - 3] = 0;
+                PressRight = false;
+            }
             IsBlock = true;
         }
         else if (t[0][1] == 2 || t[0][2] == 2 || t[0][3] == 2 || t[0][4] == 2 || t[0][5] == 2 || t[0][6] == 2 || t[0][7] == 2 || t[0][8] == 2 || t[0][9] == 2 || t[0][10] == 2)
@@ -163,7 +169,7 @@ int main()
     int control_x = 0;
     int control_y = 5;
     bool IsBlock = true;
-    int BlockSpeed = MAXBlockSpeed - 95;
+    int BlockSpeed = MAXBlockSpeed - 90;
     int CurrntBlock = 0;
     int NextBlock = 0;
     srand((unsigned int)time(NULL));
@@ -185,11 +191,21 @@ int main()
         {
             key = 0;
             key = getch();
+            key = getch();
 
-            if (key == 27)
+            if (key == 91)
             {
-                PressRight = true;
-                control_y++;
+                key = getch();
+                if (key == 67)
+                {
+                    PressRight = true;
+                    control_y++;
+                }
+                if (key == 68)
+                {
+                    PressLeft = true;
+                    control_y--;
+                }
             }
 
             OneClick = true;
@@ -197,7 +213,8 @@ int main()
 
         if (Qblock.size() == 1)
         {
-            Qblock.push(rand() % 7);
+            // Qblock.push(rand() % 7);
+            Qblock.push(0);
         }
 
         cout << "Current Block : " << CurrntBlock << endl;
