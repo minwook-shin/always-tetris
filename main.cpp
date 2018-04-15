@@ -10,9 +10,25 @@
 #define SIZE 100
 #define SLEEP 16666.666666667
 #define MAXBlockSpeed 100
+#define X 22
+#define Y 12
 
 using namespace std;
 
+queue<int> Qblock;
+
+int control_x = 0;
+int control_y = 5;
+int BlockSpeed = MAXBlockSpeed - 85;
+int CurrntBlock = 0;
+int NextBlock = 0;
+int Score = 0;
+int key, key2;
+bool IsBlock = true;
+bool PressLeft = false;
+bool PressRight = false;
+bool ScoreUp = false;
+bool OneClick = false;
 int c = 0;
 
 int kbhit(void)
@@ -27,18 +43,14 @@ int kbhit(void)
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
     oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
     fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-
     ch = getchar();
-
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     fcntl(STDIN_FILENO, F_SETFL, oldf);
-
     if (ch != EOF)
     {
         ungetc(ch, stdin);
         return 1;
     }
-
     return 0;
 }
 
@@ -59,11 +71,41 @@ int getch(void)
     return ch;
 }
 
+void *PressKey(bool &OneClick, int &key, int &key2, bool &PressLeft, bool &PressRight,int &control_x, int & control_y)
+{
+    OneClick = false;
+
+    key2 = kbhit();
+
+    if (key2 == 1 && OneClick == false)
+    {
+        key = 0;
+        key = getch();
+        key = getch();
+
+        if (key == 91)
+        {
+            key = getch();
+            if (key == 67)
+            {
+                PressRight = true;
+                control_y++;
+            }
+            if (key == 68)
+            {
+                PressLeft = true;
+                control_y--;
+            }
+        }
+        OneClick = true;
+    }
+}
+
 void *DrawBoard(int **t)
 {
-    for (int i = 0; i < 22; i++)
+    for (int i = 0; i < X; i++)
     {
-        for (int j = 0; j < 12; j++)
+        for (int j = 0; j < Y; j++)
         {
             if (j == 0)
             {
@@ -80,9 +122,9 @@ void *DrawBoard(int **t)
         }
     }
 
-    for (int i = 0; i < 22; i++)
+    for (int i = 0; i < X; i++)
     {
-        for (int j = 0; j < 12; j++)
+        for (int j = 0; j < Y; j++)
         {
             if (t[i][j] == 0)
             {
@@ -102,7 +144,7 @@ void *DrawBoard(int **t)
     c++;
 }
 
-void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock, int BlockSpeed, queue<int> &Qblock, int &CurrentBlock, int &NextBlock, bool &PressLeft, bool &PressRight,bool &ScoreUp)
+void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock, int BlockSpeed, queue<int> &Qblock, int &CurrentBlock, int &NextBlock, bool &PressLeft, bool &PressRight, bool &ScoreUp)
 {
     t[control_x][control_y] = 2;
     if ((c % BlockSpeed == 0))
@@ -116,14 +158,14 @@ void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock, int B
             {
                 t[temp][control_y + 1] = 0;
                 t[temp][control_y + 2] = 0;
-                t[temp][control_y + 3] = 0;
+
                 PressLeft = false;
             }
             if (PressRight == true)
             {
                 t[temp][control_y - 1] = 0;
                 t[temp][control_y - 2] = 0;
-                t[temp][control_y - 3] = 0;
+
                 PressRight = false;
             }
             IsBlock = true;
@@ -135,7 +177,7 @@ void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock, int B
         }
         else
         {
-            if(ScoreUp == true)
+            if (ScoreUp == true)
             {
                 t[control_x][control_y] = 0;
                 ScoreUp = false;
@@ -146,116 +188,89 @@ void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock, int B
             CurrentBlock = Qblock.front();
             Qblock.pop();
             NextBlock = Qblock.front();
-            
         }
     }
 }
 
 void *ClearBoard(int **t)
 {
-    for (int i = 0; i < 22; ++i)
+    for (int i = 0; i < X; ++i)
     {
         delete[] t[i];
     }
 }
 
+void DetectLine(int **(&t), int &Score, bool &ScoreUp)
+{
+    for (int i = 0; i < 21; i++)
+    {
+        int tmp = 0;
+        for (int j = 0; j < Y; j++)
+        {
+            if (t[i][j] >= 1)
+            {
+                tmp++;
+            }
+        }
+        if (tmp >= Y)
+        {
+            Score += 100;
+            for (int j = 0; j < Y; j++)
+            {
+                if (j == 0 || j == Y)
+                {
+                    continue;
+                }
+                else
+                {
+                    t[i][j] = 0;
+                }
+            }
+            ScoreUp = true;
+        }
+    }
+}
+
+void *InfoDisplay()
+{
+    cout << "Current Block : " << CurrntBlock << endl;
+    cout << "Next Block : " << NextBlock << endl;
+    cout << "Score : " << Score << endl;
+}
+
+void FillBlock(queue<int> &Qblock)
+{
+    if (Qblock.size() == 1)
+    {
+        Qblock.push(rand() % 7);
+    }
+}
+
+void RandomBlock(queue<int> &Qblock)
+{
+    srand((unsigned int)time(NULL));
+    Qblock.push(rand() % 7);
+}
+
 int main()
 {
-    queue<int> Qblock;
-
-    int **t = new int *[22];
-    for (int i = 0; i < 22; ++i)
+    int **t = new int *[X];
+    for (int i = 0; i < X; ++i)
     {
-        t[i] = new int[12];
-        memset(t[i], 0, 4 * 12);
+        t[i] = new int[Y];
+        memset(t[i], 0, 4 * Y);
     }
 
-    int control_x = 0;
-    int control_y = 5;
-    bool IsBlock = true;
-    int BlockSpeed = MAXBlockSpeed - 90;
-    int CurrntBlock = 0;
-    int NextBlock = 0;
-    srand((unsigned int)time(NULL));
-    bool PressLeft = false;
-    bool PressRight = false;
-    int Score = 0;
-    bool ScoreUp = false;
-
-    int key, key2;
-    bool OneClick = false;
-    Qblock.push(rand() % 7);
+    RandomBlock(Qblock);
 
     while (true)
     {
-
-        OneClick = false;
-
-        key2 = kbhit();
-
-        if (key2 == 1 && OneClick == false)
-        {
-            key = 0;
-            key = getch();
-            key = getch();
-
-            if (key == 91)
-            {
-                key = getch();
-                if (key == 67)
-                {
-                    PressRight = true;
-                    control_y++;
-                }
-                if (key == 68)
-                {
-                    PressLeft = true;
-                    control_y--;
-                }
-            }
-
-            OneClick = true;
-        }
-
-        if (Qblock.size() == 1)
-        {
-            Qblock.push(rand() % 7);
-        }
-
-        cout << "Current Block : " << CurrntBlock << endl;
-        cout << "Next Block : " << NextBlock << endl;
-        cout << "Score : " << Score << endl;
-
-        DropBoard(t, control_x, control_y, IsBlock, BlockSpeed, Qblock, CurrntBlock, NextBlock, PressLeft, PressRight,ScoreUp);
+        PressKey(OneClick, key, key2, PressLeft, PressRight,control_x,control_y);
+        FillBlock(Qblock);
+        InfoDisplay();
+        DropBoard(t, control_x, control_y, IsBlock, BlockSpeed, Qblock, CurrntBlock, NextBlock, PressLeft, PressRight, ScoreUp);
         DrawBoard(t);
-
-        for (int i = 0; i < 21; i++)
-        {
-            int tmp = 0;
-            for (int j = 0; j < 12; j++)
-            {
-                if (t[i][j] >= 1)
-                {
-                    tmp++;
-                }
-            }
-            if (tmp >= 12)
-            {
-                Score += 100;
-                for (int j = 0; j < 12; j++)
-                {
-                    if (j == 0 || j == 12)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        t[i][j] = 0;
-                    }
-                }
-                ScoreUp = true;
-            }
-        }
+        DetectLine(t, Score, ScoreUp);
         usleep(SLEEP);
         system("clear");
     }
