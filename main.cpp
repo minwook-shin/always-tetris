@@ -4,9 +4,7 @@
 #include <cstring>
 #include <queue>
 #include <stdio.h>
-#include <term.h>
 #include <termios.h>
-#include <time.h>
 #include <fcntl.h>
 
 #define SIZE 100
@@ -104,7 +102,7 @@ void *DrawBoard(int **t)
     c++;
 }
 
-void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock, int BlockSpeed, queue<int> &Qblock, int &CurrentBlock, int &NextBlock, bool &PressLeft, bool &PressRight)
+void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock, int BlockSpeed, queue<int> &Qblock, int &CurrentBlock, int &NextBlock, bool &PressLeft, bool &PressRight,bool &ScoreUp)
 {
     t[control_x][control_y] = 2;
     if ((c % BlockSpeed == 0))
@@ -118,7 +116,7 @@ void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock, int B
             {
                 t[temp][control_y + 1] = 0;
                 t[temp][control_y + 2] = 0;
-                 t[temp][control_y + 3] = 0;
+                t[temp][control_y + 3] = 0;
                 PressLeft = false;
             }
             if (PressRight == true)
@@ -137,12 +135,18 @@ void *DropBoard(int **(&t), int &control_x, int &control_y, bool &IsBlock, int B
         }
         else
         {
+            if(ScoreUp == true)
+            {
+                t[control_x][control_y] = 0;
+                ScoreUp = false;
+            }
             control_x = 0;
             control_y = 5;
             IsBlock = false;
             CurrentBlock = Qblock.front();
             Qblock.pop();
             NextBlock = Qblock.front();
+            
         }
     }
 }
@@ -175,6 +179,8 @@ int main()
     srand((unsigned int)time(NULL));
     bool PressLeft = false;
     bool PressRight = false;
+    int Score = 0;
+    bool ScoreUp = false;
 
     int key, key2;
     bool OneClick = false;
@@ -213,15 +219,43 @@ int main()
 
         if (Qblock.size() == 1)
         {
-            // Qblock.push(rand() % 7);
-            Qblock.push(0);
+            Qblock.push(rand() % 7);
         }
 
         cout << "Current Block : " << CurrntBlock << endl;
         cout << "Next Block : " << NextBlock << endl;
+        cout << "Score : " << Score << endl;
 
-        DropBoard(t, control_x, control_y, IsBlock, BlockSpeed, Qblock, CurrntBlock, NextBlock, PressLeft, PressRight);
+        DropBoard(t, control_x, control_y, IsBlock, BlockSpeed, Qblock, CurrntBlock, NextBlock, PressLeft, PressRight,ScoreUp);
         DrawBoard(t);
+
+        for (int i = 0; i < 21; i++)
+        {
+            int tmp = 0;
+            for (int j = 0; j < 12; j++)
+            {
+                if (t[i][j] >= 1)
+                {
+                    tmp++;
+                }
+            }
+            if (tmp >= 12)
+            {
+                Score += 100;
+                for (int j = 0; j < 12; j++)
+                {
+                    if (j == 0 || j == 12)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        t[i][j] = 0;
+                    }
+                }
+                ScoreUp = true;
+            }
+        }
         usleep(SLEEP);
         system("clear");
     }
